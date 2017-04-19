@@ -63,6 +63,10 @@ function setRepoBranch(finished) {
 	});
 }
 
+function parseBranch(branch) {
+	return branch;
+}
+
 function getUser(args) {
 	var getOptions = {
 		url: 'https://www.pivotaltracker.com/services/v5/me',
