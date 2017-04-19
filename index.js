@@ -39,6 +39,18 @@ function setApiToken(finished) {
 	});
 }
 
+function setRepoLocation(finished) {
+	process.stdin.on('data', function (text) {
+		text = text.trim();
+		
+		repoLocation = text;
+		storage.setItemSync("repo-location", repoLocation);
+		
+		finished();
+		process.exit();
+	});
+}
+
 function getUser(args) {
 	var getOptions = {
 		url: 'https://www.pivotaltracker.com/services/v5/me',
@@ -67,7 +79,7 @@ function getUser(args) {
 
 function processStories() {
 	var getOptions = {
-		url: 'https://www.pivotaltracker.com/services/v5/projects/1551625/stories?limit=100&offset=0&with_state=started',
+		url: 'https://www.pivotaltracker.com/services/v5/projects/' + pivotalProjectId + '/stories?limit=100&offset=0&with_state=started',
 	    method: 'GET',
 		headers: {
 			'X-TrackerToken': apiToken
@@ -98,7 +110,7 @@ function processStories() {
 					
 					if (story) {
 						commitToStory(story);
-						process.exit();
+						return;
 					} else {
 						storage.setItemSync('current-story-id', undefined);
 					}
@@ -153,8 +165,10 @@ function processStories() {
 }
 
 function commitToStory(story) {
+	var prefix = "[#" + story.id + "] ";
+	
 	console.log("Committing to story: " + story.name);
-	console.log("[#" + story.id + "] " + message);
+	console.log(prefix + message);
 	
 	function filterAdded(files) {
 		return files.filter(function (f) {
@@ -164,29 +178,78 @@ function commitToStory(story) {
 	
 	var status, commits;
 	
-	simpleGit(repoLocation)
-		.status(function (err, s) {
+	var repo = simpleGit(repoLocation);
+	
+	
+		repo.status(function (err, s) {
 			console.log(s);
 			
 			status = s;
 			
 			if (filterAdded(s.files).length == 0) {
-				// console.log("!!! no files are added");
+				console.log("!!! no files are added");
 				// process.exit(1);
 			}
 		}).log(function (err, s) {
-			commits = s.all.slice(0, status.ahead);
+			commits = s.all.slice(0, status.tracking ? status.ahead : s.all.length);
 			// if (filterAdded(s.files).length == 0) {
 			// 	console.log("!!! no files are added");
 			// 	process.exit(1);
 			// }
 			
-			console.log(commits.map(function (c) {
-				return c//.message;
-			}));
+			var message = commits[0].message;
+			
+			if (message[message.length - 1] == ')') {
+				commits[0].message = message.substring(0, message.lastIndexOf('(') - 1);
+			}
 		}).then(function () {
-			console.log("Successfully committed");
-			process.exit();
+			var tempBranchName = "pivotalTemp" + new Date().getTime();
+			
+			function finished() {
+				// repo.raw(["branch", "-d", tempBranchName], function (e, r) {
+					process.exit();
+				// });
+			}
+			
+			function amendCommit(commit) {
+				repo.raw(["branch"], function (e, r) {
+					var branchName = r.substring(2).trim();
+					
+					console.log("Got branch");
+			
+					repo.raw(["checkout", commit.hash], function (e, r) {
+						console.log("checked out: ", r);
+						repo.raw(["commit", "--amend", "-m", prefix + commit.message], function (e, r) {
+							console.log("Committed: ", r);
+							repo.log(function (e, r) {
+								console.log("logged: ", r);
+								repo.raw(["replace", commit.hash, r.latest.hash], function (e, r) {
+									console.log("replaced: ", r);
+									repo.raw(["filter-branch", "-f", "--", "--all"], function (e, r) {
+										console.log("filtered: ", r);
+										repo.raw(["replace", "-d", commit.hash], function (e, r) {
+											console.log("replaced: ", r);
+											repo.raw(["checkout", branchName], function (e, r) {
+												console.log("checed out : ", r);
+											// repo.raw(["checkout", "-b", tempBranchName], function (e, r) {
+											// 	repo.raw(["branch", "-f", branchName, tempBranchName], function (e, r) {
+													if (commits.length == 0) {
+														finished();
+													} else {
+														amendCommit(commits.shift());
+													}
+												});
+											// })
+										});
+									});
+								});
+							});
+						});
+					});
+				});
+			}
+			
+			amendCommit(commits.shift());
 		})
 }
 
@@ -199,8 +262,16 @@ function deploy() {
 }
 
 function help() {
-	console.log("pvc [\"commit message (don't include pivotal id)\"] [-deploy] [--api-token 12123k12k12jknnk21kn21n12] [-reselect]");
+	console.log("pvc [\"commit message (don't include pivotal id)\"] [-deploy] [--api-token 12123k12k12jknnk21kn21n12] [-reselect] [--repo-location /repo/root/url] [--pivotal-project-id 1234511]");
 	process.exit(0);
+}
+
+function printOrContinue(index, type) {
+	if (index == process.argv.length - 1) {
+		console.log(type + ": " + storage.getItemSync(type));
+		
+		process.exit();
+	}
 }
 
 storage.initSync();
@@ -220,6 +291,7 @@ process.argv.forEach(function (val, index, array) {
 					deploy();
 					break;
 				case "-api-token":
+					printOrContinue(index, "api-token");
 					argSkipCount = 1;
 					apiToken = process.argv[index + 1];
 					storage.setItemSync("api-token", apiToken);
@@ -227,17 +299,23 @@ process.argv.forEach(function (val, index, array) {
 				case "reselect":
 					forceSelect = true;
 					break;
-				case "-request-limit":
+				case "-repo-location":
+					printOrContinue(index, "repo-location");
 					argSkipCount = 1;
-					requestLimit = parseInt(process.argv[index + 1]);
+					repoLocation = process.argv[index + 1];
+					storage.setItemSync("repo-location", repoLocation);
 					break;
-				case "offset":
+				case "-repo-branch":
+					printOrContinue(index, "repo-branch");
 					argSkipCount = 1;
-					pageOffset = parseInt(process.argv[index + 1]);
+					repoBranch = parseBranch(process.argv[index + 1]);
+					storage.setItemSync("repo-branch", repoBranch);
 					break;
-				case "filter":
+				case "-pivotal-project-id":
+					printOrContinue(index, "pivotal-project-id");
 					argSkipCount = 1;
-					filterStories = process.argv[index + 1] == "true";
+					pivotalProjectId = parseBranch(process.argv[index + 1]);
+					storage.setItemSync("pivotal-project-id", pivotalProjectId);
 					break;
 				case "h": case "help":
 					help();
