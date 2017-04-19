@@ -8,6 +8,8 @@ process.stdin.setEncoding('utf8');
 var util = require('util')
 
 var apiToken;
+var repoLocation, repoBranch;
+var pivotalProjectId;
 
 var message;
 var user;
@@ -240,15 +242,39 @@ if (argSkipCount > 0) {
 	process.exit(1);
 }
 
-apiToken = storage.getItemSync('api-token');
+function loadValues() {
+	pivotalProjectId = pivotalProjectId || storage.getItemSync('pivotal-project-id');
+	apiToken = apiToken || storage.getItemSync('api-token');
+	repoLocation = repoLocation || storage.getItemSync('repo-location');
+	repoBranch = repoBranch || storage.getItemSync('repo-branch');
 
-if (!apiToken) {
-	console.log("You must set your user api key!!!!!!! please enter it here:");
-	
-	setApiToken(run);
-} else {
-	run();
+	function recurse() {
+		loadValues();
+		run();
+	}
+
+	if (!pivotalProjectId) {
+		console.log("You must set your pivotal project id!!!!!!! please enter it here:");
+		
+		setPivotalProjectId(recurse);
+	} else if (!apiToken) {
+		console.log("You must set your user api key!!!!!!! please enter it here:");
+		
+		setApiToken(recurse);
+	} else if (!repoLocation) {
+		console.log("You must set your repo location!!!!!!! please enter it here:");
+		
+		setRepoLocation(recurse);
+	} /*else if (!repoBranch) {
+		console.log("You must set your repo branch!!!!!!! please enter it here:");
+		
+		setRepoBranch(recurse);
+	}*/ else {
+		run();
+	}
 }
+
+loadValues();
 
 function run() {
 	getUser({
