@@ -1,0 +1,15 @@
+{
+  "name": "pivotal-gitter",
+  "version": "1.0.0",
+  "description": "Git committer with pivitol id",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Braden Steffaniak",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
+  }
+}
