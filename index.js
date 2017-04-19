@@ -84,6 +84,8 @@ function processStories() {
 					if (story) {
 						commitToStory(story);
 						process.exit();
+					} else {
+						storage.setItemSync('current-story-id', undefined);
 					}
 				}
 				
