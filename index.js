@@ -10,6 +10,7 @@ var apiToken;
 
 var message;
 var user;
+var forceSelect;
 
 function setApiToken(finished) {
 	process.stdin.on('data', function (text) {
@@ -75,7 +76,7 @@ function processStories() {
 			if (stories.length > 1) {
 				var storedId = storage.getItemSync('current-story-id');
 				
-				if (storedId) {
+				if (!forceSelect && storedId) {
 					var story = stories.find(function (story) {
 						return story.id == storedId;
 					});
@@ -137,7 +138,7 @@ function deploy() {
 }
 
 function help() {
-	console.log("pvc [\"commit message (don't include pivotal id)\"] [-deploy] [--api-token 12123k12k12jknnk21kn21n12]");
+	console.log("pvc [\"commit message (don't include pivotal id)\"] [-deploy] [--api-token 12123k12k12jknnk21kn21n12] [-reselect]");
 	process.exit(0);
 }
 
@@ -162,9 +163,8 @@ process.argv.forEach(function (val, index, array) {
 					apiToken = process.argv[index + 1];
 					storage.setItemSync("api-token", apiToken);
 					break;
-				case "-page-limit":
-					argSkipCount = 1;
-					pageLimit = parseInt(process.argv[index + 1]);
+				case "reselect":
+					forceSelect = true;
 					break;
 				case "-request-limit":
 					argSkipCount = 1;
