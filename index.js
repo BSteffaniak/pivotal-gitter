@@ -162,19 +162,28 @@ function commitToStory(story) {
 		});
 	}
 	
+	var status, commits;
+	
 	simpleGit(repoLocation)
 		.status(function (err, s) {
 			console.log(s);
+			
+			status = s;
+			
 			if (filterAdded(s.files).length == 0) {
 				// console.log("!!! no files are added");
 				// process.exit(1);
 			}
 		}).log(function (err, s) {
-			console.log(s.latest);
+			commits = s.all.slice(0, status.ahead);
 			// if (filterAdded(s.files).length == 0) {
 			// 	console.log("!!! no files are added");
 			// 	process.exit(1);
 			// }
+			
+			console.log(commits.map(function (c) {
+				return c//.message;
+			}));
 		}).then(function () {
 			console.log("Successfully committed");
 			process.exit();
