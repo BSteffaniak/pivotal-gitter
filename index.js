@@ -82,7 +82,7 @@ function processStories() {
 					});
 					
 					if (story) {
-						console.log("loaded story: ", story);
+						commitToStory(story);
 						process.exit();
 					}
 				}
@@ -119,14 +119,21 @@ function processStories() {
 					});
 				}
 				
-				selectStory(function (id) {
-					storage.setItemSync('current-story-id', id);
+				selectStory(function (story) {
+					storage.setItemSync('current-story-id', story.id);
+					
+					commitToStory(story);
 				});
 			} else {
-				
+				commitToStory(stories[0]);
 			}
 		}
 	});
+}
+
+function commitToStory(story) {
+	console.log("Committing to story: " + story.name);
+	console.log("[#" + story.id + "] " + message);
 }
 
 // INITIALIZATION:
