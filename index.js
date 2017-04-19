@@ -1,6 +1,7 @@
 var request = require('request');
 var storage = require('node-persist');
 var fuzzy = require('fuzzy');
+var simpleGit = require('simple-git')
 
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
@@ -140,6 +141,30 @@ function processStories() {
 function commitToStory(story) {
 	console.log("Committing to story: " + story.name);
 	console.log("[#" + story.id + "] " + message);
+	
+	function filterAdded(files) {
+		return files.filter(function (f) {
+			return f.index == 'M';
+		});
+	}
+	
+	simpleGit(repoLocation)
+		.status(function (err, s) {
+			console.log(s);
+			if (filterAdded(s.files).length == 0) {
+				// console.log("!!! no files are added");
+				// process.exit(1);
+			}
+		}).log(function (err, s) {
+			console.log(s.latest);
+			// if (filterAdded(s.files).length == 0) {
+			// 	console.log("!!! no files are added");
+			// 	process.exit(1);
+			// }
+		}).then(function () {
+			console.log("Successfully committed");
+			process.exit();
+		})
 }
 
 // INITIALIZATION:
