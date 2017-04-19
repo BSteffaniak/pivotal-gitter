@@ -51,6 +51,18 @@ function setRepoLocation(finished) {
 	});
 }
 
+function setRepoBranch(finished) {
+	process.stdin.on('data', function (text) {
+		text = text.trim();
+		
+		repoBranch = parseBranch(text);
+		storage.setItemSync("repo-branch", repoBranch);
+		
+		finished();
+		process.exit();
+	});
+}
+
 function getUser(args) {
 	var getOptions = {
 		url: 'https://www.pivotaltracker.com/services/v5/me',
