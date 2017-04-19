@@ -124,6 +124,8 @@ function processStories() {
 					
 					commitToStory(story);
 				});
+			} else if (stories.length == 0) {
+				console.log("You do not have any stories started")
 			} else {
 				commitToStory(stories[0]);
 			}
