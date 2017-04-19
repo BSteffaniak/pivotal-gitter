@@ -15,6 +15,18 @@ var message;
 var user;
 var forceSelect;
 
+function setPivotalProjectId(finished) {
+	process.stdin.on('data', function (text) {
+		text = text.trim();
+		
+		pivotalProjectId = text;
+		storage.setItemSync("pivotal-project-id", pivotalProjectId);
+		
+		finished();
+		process.exit();
+	});
+}
+
 function setApiToken(finished) {
 	process.stdin.on('data', function (text) {
 		text = text.trim();
