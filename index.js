@@ -115,7 +115,9 @@ function processStories() {
 						} else {
 							var id = filtered[0].string.substring(0, filtered[0].string.indexOf(' '));
 							
-							finished(id);
+							finished(stories.find(function (story) {
+								return story.id == id;
+							}));
 							process.exit();
 						}
 					});
