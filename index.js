@@ -216,7 +216,7 @@ function run() {
 	getUser({
 		success: processStories,
 		failure: function () {
-			console.error("You are not logged in...");
+			console.error("You are not logged in... may need to reset api key");
 			process.exit(1);
 		}
 	});
